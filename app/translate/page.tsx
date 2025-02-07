@@ -28,31 +28,25 @@ export default function AudioProcessor() {
     translated: string;
   } | null>(null);
   const [liveTranscript, setLiveTranscript] = useState<string>("");
-//   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   // Live transcription setup
-  interface ExtendedSpeechRecognition extends SpeechRecognition {
-    onend?: () => void;
-  }
-  
-  
-  const recognitionRef = useRef<ExtendedSpeechRecognition | null>(null);
-  
   useEffect(() => {
     if (!stream) {
       setLiveTranscript("");
-      recognitionRef.current?.stop();
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
       return;
     }
-  
+
     const setupRecognition = () => {
       if ("webkitSpeechRecognition" in window) {
-        recognitionRef.current = new (window as any).webkitSpeechRecognition() as ExtendedSpeechRecognition;
-        
+        recognitionRef.current = new (window as any).webkitSpeechRecognition();
         recognitionRef.current.continuous = true;
         recognitionRef.current.interimResults = true;
         recognitionRef.current.lang = "vi-VN";
-  
+
         recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
           let transcript = "";
           for (let i = 0; i < event.results.length; i++) {
@@ -60,11 +54,12 @@ export default function AudioProcessor() {
           }
           setLiveTranscript(transcript);
         };
-  
+
         recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
           console.error("Speech recognition error:", event.error);
           if (event.error === "no-speech") {
-            recognitionRef.current?.stop();
+            // Restart recognition on no-speech error
+            recognitionRef.current.stop();
             setTimeout(() => {
               if (stream.active) {
                 recognitionRef.current?.start();
@@ -72,24 +67,26 @@ export default function AudioProcessor() {
             }, 100);
           }
         };
-  
+
         recognitionRef.current.onend = () => {
+          // Restart recognition if still recording
           if (stream.active) {
             recognitionRef.current?.start();
           }
         };
-  
+
         recognitionRef.current.start();
       }
     };
-  
+
     setupRecognition();
-  
+
     return () => {
-      recognitionRef.current?.stop();
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
     };
   }, [stream]);
-  
 
   const handleProcess = async () => {
     if (!audioUrl) return;
