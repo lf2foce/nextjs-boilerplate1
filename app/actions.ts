@@ -1,75 +1,111 @@
 "use server"
 
-import { OpenAI } from "openai"
+import OpenAI from "openai"
+import { Buffer } from "buffer"
+import { ElevenLabsClient } from "elevenlabs";
+import { Readable } from "stream";
 
+const client = new ElevenLabsClient({
+  apiKey: process.env.ELEVENLABS_API_KEY, // Ensure this is set in your environment variables
+});
+
+// Initialize OpenAI Client
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY, // Ensure this is set in your environment variables
 })
 
-export async function generateSpeech(audioBlob: Blob) {
+export async function extractAndTranslateText(imageBase64: string) {
   try {
-    // Convert Blob to File for OpenAI API
-    const audioFile = new File([audioBlob], "audio.webm", { type: "audio/webm" })
+    // Remove Data URL prefix if present
+    const base64Image = imageBase64.split(",")[1]
 
-    // First, convert the audio to text using OpenAI Whisper
-    const transcription = await openai.audio.transcriptions.create({
-      file: audioFile,
-      model: "whisper-1",
-      language: "vi",
-    })
+    if (!base64Image) {
+      throw new Error("Invalid image data")
+    }
 
-    console.log("Transcription:", transcription.text)
+    // Convert Base64 to Buffer and back to ensure proper encoding
+    const buffer = Buffer.from(base64Image, "base64")
+    const encodedImage = buffer.toString("base64")
 
-    // Translate Vietnamese to English
-    const translation = await openai.chat.completions.create({
-      model: "gpt-4",
+    // Extract English text from image using GPT-4o Vision API
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
       messages: [
         {
-          role: "system",
-          content:
-            "You are a Vietnamese to English translator. Translate the following text to English, maintaining the original meaning and tone:",
-        },
-        {
           role: "user",
-          content: transcription.text,
+          content: [
+            {
+              type: "text",
+              text: 'Extract any English text from this image. Only return the text you see, nothing else. If there is no English text, say "No English text found."',
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${encodedImage}`,
+                detail: "low",
+              },
+            },
+          ],
         },
       ],
     })
 
-    const englishText = translation.choices[0].message.content
+    // Extract text from OpenAI's response
+    const extractedText = response.choices[0]?.message?.content?.trim()
 
-    console.log("Translation:", englishText)
+    if (!extractedText || extractedText === "No English text found.") {
+      return { error: "No English text found in the image" }
+    }
 
-    // Generate speech from English text using ElevenLabs
-    const response = await fetch("https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM", {
-      method: "POST",
-      headers: {
-        "xi-api-key": process.env.ELEVENLABS_API_KEY!,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        text: englishText,
-        model_id: "eleven_monolingual_v1",
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.5,
+    // Translate extracted text to Vietnamese using OpenAI
+    const translationResponse = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "user",
+          content: `Translate this English text to Vietnamese:\n\n${extractedText}`,
         },
-      }),
+      ],
     })
 
-    if (!response.ok) {
-      throw new Error("Failed to generate speech")
-    }
+    const translatedText = translationResponse.choices[0]?.message?.content?.trim()
 
-    const audioBuffer = await response.arrayBuffer()
-    return {
-      audio: audioBuffer,
-      originalText: transcription.text,
-      translatedText: englishText,
-    }
+    return { originalText: extractedText, translatedText }
   } catch (error) {
-    console.error("Error in speech processing:", error)
-    throw error
+    console.error("Error processing image:", error)
+    return { error: "Failed to process image and translate text" }
   }
 }
 
+export async function generateSpeech(text: string) {
+  try {
+    const voiceId = "GATds6kYPBX2tRfQExbR"; //"JBFqnCBsd6RMkjVDRZzb"; // Replace with the best Vietnamese voice ID
+
+    const response = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
+      {
+        method: "POST",
+        headers: {
+          Accept: "audio/mpeg",
+          "Content-Type": "application/json",
+          "xi-api-key": process.env.ELEVENLABS_API_KEY!,
+        },
+        body: JSON.stringify({
+          text,
+          model_id: "eleven_flash_v2_5", // "eleven_turbo_v2.5", // "eleven_multilingual_v2",
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to generate speech: ${response.statusText}`);
+    }
+
+    // Convert response to a Base64 string
+    const audioBuffer = await response.arrayBuffer();
+    return Buffer.from(audioBuffer).toString("base64");
+  } catch (error) {
+    console.error("Speech generation error:", error);
+    return { error: "Failed to generate speech" };
+  }
+}

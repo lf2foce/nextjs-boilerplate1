@@ -1,236 +1,153 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState } from "react"
+import { CameraComponent } from "@/components/camera"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Mic, Pause, Play, Square, Volume2, Loader2 } from "lucide-react"
-import { useAudioRecorder } from "../hooks/use-audio-recorder"
-import { useToast } from "@/components/ui/use-toast"
+import { Card, CardContent } from "@/components/ui/card"
+import { extractAndTranslateText, generateSpeech } from "./actions"
+import { Volume2, Loader2, RotateCcw, Sparkles } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { motion, AnimatePresence } from "framer-motion"
 
-export default function AudioProcessor() {
-  const { toast } = useToast()
-  const {
-    isRecording,
-    isPaused,
-    audioUrl,
-    error,
-    stream,
-    startRecording,
-    stopRecording,
-    pauseRecording,
-    resumeRecording,
-  } = useAudioRecorder()
-
-  const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null)
+export default function TranslatorApp() {
+  const [image, setImage] = useState<string | null>(null)
+  const [originalText, setOriginalText] = useState<string | null>(null)
+  const [translation, setTranslation] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [transcription, setTranscription] = useState<{
-    original: string
-    translated: string
-  } | null>(null)
-  const [liveTranscript, setLiveTranscript] = useState<string>("")
-  const recognitionRef = useRef<any>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  // Live transcription setup
-  useEffect(() => {
-    if (!stream) {
-      setLiveTranscript("")
-      if (recognitionRef.current) {
-        recognitionRef.current.stop()
-      }
-      return
-    }
-
-    const setupRecognition = () => {
-      if ("webkitSpeechRecognition" in window) {
-        recognitionRef.current = new (window as any).webkitSpeechRecognition()
-        recognitionRef.current.continuous = true
-        recognitionRef.current.interimResults = true
-        recognitionRef.current.lang = "vi-VN"
-
-        recognitionRef.current.onresult = (event: any) => {
-          let transcript = ""
-          for (let i = 0; i < event.results.length; i++) {
-            transcript += event.results[i][0].transcript
-          }
-          setLiveTranscript(transcript)
-        }
-
-        recognitionRef.current.onerror = (event: any) => {
-          console.error("Speech recognition error:", event.error)
-          if (event.error === "no-speech") {
-            // Restart recognition on no-speech error
-            recognitionRef.current.stop()
-            setTimeout(() => {
-              if (stream.active) {
-                recognitionRef.current.start()
-              }
-            }, 100)
-          }
-        }
-
-        recognitionRef.current.onend = () => {
-          // Restart recognition if still recording
-          if (stream.active) {
-            recognitionRef.current.start()
-          }
-        }
-
-        recognitionRef.current.start()
-      }
-    }
-
-    setupRecognition()
-
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop()
-      }
-    }
-  }, [stream])
-
-  const handleProcess = async () => {
-    if (!audioUrl) return
+  const handleImageCapture = async (imageData: string) => {
+    setImage(imageData)
+    setError(null)
+    setIsProcessing(true)
 
     try {
-      setIsProcessing(true)
-      const response = await fetch(audioUrl)
-      const blob = await response.blob()
+      const result = await extractAndTranslateText(imageData)
 
-      const formData = new FormData()
-      formData.append("audio", blob, "audio.webm")
-
-      toast({
-        title: "Processing audio",
-        description: "Converting speech to text and translating...",
-      })
-
-      const result = await fetch("/api/process-audio", {
-        method: "POST",
-        body: formData,
-      })
-
-      if (!result.ok) {
-        const errorData = await result.json().catch(() => ({ error: "Failed to process audio" }))
-        throw new Error(errorData.error || "Failed to process audio")
+      if ("error" in result) {
+        setError(result.error)
+        return
       }
 
-      const data = await result.json()
-
-      if (data.error) {
-        throw new Error(data.error)
-      }
-
-      const audioArray = new Uint8Array(data.audio)
-      const audioBlob = new Blob([audioArray], { type: "audio/mpeg" })
-      const url = URL.createObjectURL(audioBlob)
-
-      setGeneratedAudioUrl(url)
-      setTranscription({
-        original: data.originalText,
-        translated: data.translatedText,
-      })
-
-      toast({
-        title: "Processing complete",
-        description: "Your audio has been translated and converted to speech!",
-      })
-    } catch (error) {
-      console.error("Error processing audio:", error)
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to process audio. Please try again.",
-        variant: "destructive",
-      })
+      setOriginalText(result.originalText)
+      setTranslation(result.translatedText)
+    } catch (err) {
+      setError("Failed to process image. Please try again.")
+      console.error(err)
     } finally {
       setIsProcessing(false)
     }
   }
 
+  const handleSpeak = async () => {
+    if (!translation || isPlaying) return
+
+    try {
+      setIsPlaying(true)
+      const audioData = await generateSpeech(translation)
+      const audio = new Audio(`data:audio/mpeg;base64,${audioData}`)
+      audio.onended = () => setIsPlaying(false)
+      await audio.play()
+    } catch (err) {
+      setError("Failed to generate speech. Please try again.")
+      setIsPlaying(false)
+    }
+  }
+
+  const handleReset = () => {
+    setImage(null)
+    setOriginalText(null)
+    setTranslation(null)
+    setError(null)
+    setIsProcessing(false)
+  }
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Vietnamese to English Translator</CardTitle>
-          <CardDescription>Record Vietnamese speech to translate to English</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {error && <div className="text-destructive text-sm bg-destructive/10 p-3 rounded-md">{error}</div>}
+    <div className="min-h-screen bg-gradient-to-b from-pink-50 to-purple-100 p-4">
+      <div className="max-w-md mx-auto space-y-8 py-8">
+        <div className="text-center space-y-4">
+          <h1 className="text-4xl font-bold text-gray-900">Magic Translator</h1>
+          <p className="text-gray-600 flex items-center justify-center gap-2">
+            <Sparkles className="w-4 h-4 text-yellow-500" />
+            Take a picture and watch the magic happen!
+            <Sparkles className="w-4 h-4 text-yellow-500" />
+          </p>
+        </div>
 
-          {liveTranscript && (
-            <div className="p-3 bg-muted rounded-lg text-sm">
-              <p className="font-medium mb-1">Live Transcript:</p>
-              <p>{liveTranscript}</p>
-            </div>
-          )}
-
-          <div className="flex justify-center gap-2">
-            {!isRecording ? (
-              <Button onClick={startRecording}>
-                <Mic className="w-4 h-4 mr-2" />
-                Start Recording
-              </Button>
-            ) : (
-              <>
-                {isPaused ? (
-                  <Button onClick={resumeRecording}>
-                    <Play className="w-4 h-4 mr-2" />
-                    Resume
-                  </Button>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={image ? "result" : "camera"}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card className="border-0 shadow-lg bg-white">
+              <CardContent className="p-6">
+                {!image ? (
+                  <CameraComponent onCapture={handleImageCapture} />
                 ) : (
-                  <Button onClick={pauseRecording}>
-                    <Pause className="w-4 h-4 mr-2" />
-                    Pause
-                  </Button>
+                  <div className="space-y-6">
+                    <img
+                      src={image || "/placeholder.svg"}
+                      alt="Captured"
+                      className="w-full rounded-lg border border-gray-200"
+                    />
+
+                    {error ? (
+                      <Alert variant="destructive">
+                        <AlertDescription>{error}</AlertDescription>
+                      </Alert>
+                    ) : (
+                      <div className="space-y-4">
+                        {isProcessing ? (
+                          <div className="flex flex-col items-center justify-center gap-4 p-8">
+                            <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
+                            <p className="text-gray-600">Working some magic...</p>
+                          </div>
+                        ) : (
+                          translation && (
+                            <motion.div className="space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                              <div className="p-4 rounded-lg bg-gray-50 border border-gray-100">
+                                <p className="text-sm font-medium text-gray-600 mb-2">Original Text:</p>
+                                <p className="text-gray-900">{originalText}</p>
+                              </div>
+                              <div className="p-4 rounded-lg bg-purple-50 border border-purple-100">
+                                <p className="text-sm font-medium text-gray-600 mb-2">Vietnamese Translation:</p>
+                                <p className="text-gray-900 font-medium">{translation}</p>
+                              </div>
+                              <div className="flex justify-center gap-4 pt-4">
+                                <Button
+                                  variant="default"
+                                  className="bg-purple-600 hover:bg-purple-700"
+                                  onClick={handleSpeak}
+                                  disabled={isPlaying}
+                                >
+                                  {isPlaying ? (
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  ) : (
+                                    <Volume2 className="w-4 h-4 mr-2" />
+                                  )}
+                                  Listen
+                                </Button>
+                                <Button variant="outline" onClick={handleReset}>
+                                  <RotateCcw className="w-4 h-4 mr-2" />
+                                  Try Another
+                                </Button>
+                              </div>
+                            </motion.div>
+                          )
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )}
-                <Button variant="destructive" onClick={stopRecording}>
-                  <Square className="w-4 h-4 mr-2" />
-                  Stop
-                </Button>
-              </>
-            )}
-          </div>
-
-          {audioUrl && (
-            <div className="space-y-4">
-              <div className="font-medium">Your Recording:</div>
-              <audio src={audioUrl} controls className="w-full" />
-              <Button className="w-full" onClick={handleProcess} disabled={isProcessing}>
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Volume2 className="w-4 h-4 mr-2" />
-                    Translate & Generate Speech
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
-
-          {transcription && (
-            <div className="space-y-2 p-4 bg-muted rounded-lg text-sm">
-              <div>
-                <span className="font-medium">Original (Vietnamese):</span>
-                <p className="mt-1">{transcription.original}</p>
-              </div>
-              <div className="border-t border-border mt-2 pt-2">
-                <span className="font-medium">Translated (English):</span>
-                <p className="mt-1">{transcription.translated}</p>
-              </div>
-            </div>
-          )}
-
-          {generatedAudioUrl && (
-            <div className="space-y-2">
-              <div className="font-medium">Generated Speech:</div>
-              <audio src={generatedAudioUrl} controls className="w-full" />
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </AnimatePresence>
+      </div>
     </div>
   )
 }
