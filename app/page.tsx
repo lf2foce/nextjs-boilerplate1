@@ -8,6 +8,7 @@ import { extractAndTranslateText, generateSpeech } from "./actions"
 import { Volume2, Loader2, RotateCcw, Sparkles } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { motion, AnimatePresence } from "framer-motion"
+import Image from "next/image";
 
 export default function TranslatorApp() {
   const [image, setImage] = useState<string | null>(null)
@@ -43,7 +44,7 @@ export default function TranslatorApp() {
       setTranslation(result.translatedText?? "")
     } catch (err) {
       setError("Failed to process image. Please try again.")
-      console.error(err)
+      console.error("Error:", err); 
     } finally {
       setIsProcessing(false)
     }
@@ -59,6 +60,7 @@ export default function TranslatorApp() {
       audio.onended = () => setIsPlaying(false)
       await audio.play()
     } catch (err) {
+      console.error("Error:", err); 
       setError("Failed to generate speech. Please try again.")
       setIsPlaying(false)
     }
@@ -98,11 +100,22 @@ export default function TranslatorApp() {
                   <CameraComponent onCapture={handleImageCapture} />
                 ) : (
                   <div className="space-y-6">
-                    <img
+                    {/* <img
                       src={image || "/placeholder.svg"}
                       alt="Captured"
                       className="w-full rounded-lg border border-gray-200"
-                    />
+                    /> */}
+
+
+<Image
+  src={image || "/placeholder.svg"}
+  alt="Captured"
+  width={500} // Adjust width as needed
+  height={300} // Adjust height as needed
+  className="w-full rounded-lg border border-gray-200"
+/>
+
+                    
 
                     {error ? (
                       <Alert variant="destructive">

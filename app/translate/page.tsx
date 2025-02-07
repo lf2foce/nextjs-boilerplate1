@@ -48,7 +48,11 @@ export default function AudioProcessor() {
           
               if (!SpeechRecognition) return;
           
-              const recognition = new SpeechRecognition() as SpeechRecognition;
+            //   const recognition = new (SpeechRecognition as unknown as new () => SpeechRecognition)(); // ✅ Explicitly casting
+                
+              const recognition = new SpeechRecognition() as SpeechRecognition & {
+                onend: (() => void) | null;
+              };
               recognition.continuous = true;
               recognition.interimResults = true;
               recognition.lang = "vi-VN";
@@ -73,7 +77,7 @@ export default function AudioProcessor() {
                 }
               };
           
-              recognition.onend = () => {
+              recognition.onend = () => { // ✅ TypeScript now recognizes 'onend'
                 if (stream.active) {
                   recognition.start();
                 }
