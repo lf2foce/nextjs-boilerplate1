@@ -18,6 +18,15 @@ export default function TranslatorApp() {
   const [error, setError] = useState<string | null>(null)
 
   const handleImageCapture = async (imageData: string) => {
+    console.log("Captured Image Data:", imageData); // Log the image data
+    
+    // Remove Data URL prefix if present
+    const base64Image = imageData.split(",")[1];
+
+    if (!base64Image) {
+      setError("Invalid image data");
+      return;
+    }
     setImage(imageData)
     setError(null)
     setIsProcessing(true)
@@ -26,12 +35,12 @@ export default function TranslatorApp() {
       const result = await extractAndTranslateText(imageData)
 
       if ("error" in result) {
-        setError(result.error)
-        return
+        setError(result.error || null); // Ensure that we pass a string or null
+        return;
       }
 
-      setOriginalText(result.originalText)
-      setTranslation(result.translatedText)
+      setOriginalText(result.originalText?? "")
+      setTranslation(result.translatedText?? "")
     } catch (err) {
       setError("Failed to process image. Please try again.")
       console.error(err)

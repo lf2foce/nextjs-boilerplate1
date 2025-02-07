@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useRef } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Mic, Pause, Play, Square, Volume2, Loader2 } from "lucide-react"
-import { useAudioRecorder } from "../hooks/use-audio-recorder"
-import { useToast } from "@/components/ui/use-toast"
+import { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Mic, Pause, Play, Square, Volume2, Loader2 } from "lucide-react";
+import { useAudioRecorder } from "@/hooks/use-audio-recorder";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function AudioProcessor() {
-  const { toast } = useToast()
+  const { toast } = useToast();
   const {
     isRecording,
     isPaused,
@@ -19,132 +19,135 @@ export default function AudioProcessor() {
     stopRecording,
     pauseRecording,
     resumeRecording,
-  } = useAudioRecorder()
+  } = useAudioRecorder();
 
-  const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null)
-  const [isProcessing, setIsProcessing] = useState(false)
+  const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [transcription, setTranscription] = useState<{
-    original: string
-    translated: string
-  } | null>(null)
-  const [liveTranscript, setLiveTranscript] = useState<string>("")
-  const recognitionRef = useRef<any>(null)
+    original: string;
+    translated: string;
+  } | null>(null);
+  const [liveTranscript, setLiveTranscript] = useState<string>("");
+//   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   // Live transcription setup
+  interface ExtendedSpeechRecognition extends SpeechRecognition {
+    onend?: () => void;
+  }
+  
+  
+  const recognitionRef = useRef<ExtendedSpeechRecognition | null>(null);
+  
   useEffect(() => {
     if (!stream) {
-      setLiveTranscript("")
-      if (recognitionRef.current) {
-        recognitionRef.current.stop()
-      }
-      return
+      setLiveTranscript("");
+      recognitionRef.current?.stop();
+      return;
     }
-
+  
     const setupRecognition = () => {
       if ("webkitSpeechRecognition" in window) {
-        recognitionRef.current = new (window as any).webkitSpeechRecognition()
-        recognitionRef.current.continuous = true
-        recognitionRef.current.interimResults = true
-        recognitionRef.current.lang = "vi-VN"
-
-        recognitionRef.current.onresult = (event: any) => {
-          let transcript = ""
+        recognitionRef.current = new (window as any).webkitSpeechRecognition() as ExtendedSpeechRecognition;
+        
+        recognitionRef.current.continuous = true;
+        recognitionRef.current.interimResults = true;
+        recognitionRef.current.lang = "vi-VN";
+  
+        recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+          let transcript = "";
           for (let i = 0; i < event.results.length; i++) {
-            transcript += event.results[i][0].transcript
+            transcript += event.results[i][0].transcript;
           }
-          setLiveTranscript(transcript)
-        }
-
-        recognitionRef.current.onerror = (event: any) => {
-          console.error("Speech recognition error:", event.error)
+          setLiveTranscript(transcript);
+        };
+  
+        recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
+          console.error("Speech recognition error:", event.error);
           if (event.error === "no-speech") {
-            // Restart recognition on no-speech error
-            recognitionRef.current.stop()
+            recognitionRef.current?.stop();
             setTimeout(() => {
               if (stream.active) {
-                recognitionRef.current.start()
+                recognitionRef.current?.start();
               }
-            }, 100)
+            }, 100);
           }
-        }
-
+        };
+  
         recognitionRef.current.onend = () => {
-          // Restart recognition if still recording
           if (stream.active) {
-            recognitionRef.current.start()
+            recognitionRef.current?.start();
           }
-        }
-
-        recognitionRef.current.start()
+        };
+  
+        recognitionRef.current.start();
       }
-    }
-
-    setupRecognition()
-
+    };
+  
+    setupRecognition();
+  
     return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop()
-      }
-    }
-  }, [stream])
+      recognitionRef.current?.stop();
+    };
+  }, [stream]);
+  
 
   const handleProcess = async () => {
-    if (!audioUrl) return
+    if (!audioUrl) return;
 
     try {
-      setIsProcessing(true)
-      const response = await fetch(audioUrl)
-      const blob = await response.blob()
+      setIsProcessing(true);
+      const response = await fetch(audioUrl);
+      const blob = await response.blob();
 
-      const formData = new FormData()
-      formData.append("audio", blob, "audio.webm")
+      const formData = new FormData();
+      formData.append("audio", blob, "audio.webm");
 
       toast({
         title: "Processing audio",
         description: "Converting speech to text and translating...",
-      })
+      });
 
       const result = await fetch("/api/process-audio", {
         method: "POST",
         body: formData,
-      })
+      });
 
       if (!result.ok) {
-        const errorData = await result.json().catch(() => ({ error: "Failed to process audio" }))
-        throw new Error(errorData.error || "Failed to process audio")
+        const errorData = await result.json().catch(() => ({ error: "Failed to process audio" }));
+        throw new Error(errorData.error || "Failed to process audio");
       }
 
-      const data = await result.json()
+      const data = await result.json();
 
       if (data.error) {
-        throw new Error(data.error)
+        throw new Error(data.error);
       }
 
-      const audioArray = new Uint8Array(data.audio)
-      const audioBlob = new Blob([audioArray], { type: "audio/mpeg" })
-      const url = URL.createObjectURL(audioBlob)
+      const audioArray = new Uint8Array(data.audio);
+      const audioBlob = new Blob([audioArray], { type: "audio/mpeg" });
+      const url = URL.createObjectURL(audioBlob);
 
-      setGeneratedAudioUrl(url)
+      setGeneratedAudioUrl(url);
       setTranscription({
         original: data.originalText,
         translated: data.translatedText,
-      })
+      });
 
       toast({
         title: "Processing complete",
         description: "Your audio has been translated and converted to speech!",
-      })
+      });
     } catch (error) {
-      console.error("Error processing audio:", error)
+      console.error("Error processing audio:", error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to process audio. Please try again.",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsProcessing(false)
+      setIsProcessing(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -232,6 +235,5 @@ export default function AudioProcessor() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
-

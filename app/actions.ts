@@ -2,12 +2,12 @@
 
 import OpenAI from "openai"
 import { Buffer } from "buffer"
-import { ElevenLabsClient } from "elevenlabs";
-import { Readable } from "stream";
+// import { ElevenLabsClient } from "elevenlabs";
+// import { Readable } from "stream";
 
-const client = new ElevenLabsClient({
-  apiKey: process.env.ELEVENLABS_API_KEY, // Ensure this is set in your environment variables
-});
+// const client = new ElevenLabsClient({
+//   apiKey: process.env.ELEVENLABS_API_KEY, // Ensure this is set in your environment variables
+// });
 
 // Initialize OpenAI Client
 const openai = new OpenAI({
