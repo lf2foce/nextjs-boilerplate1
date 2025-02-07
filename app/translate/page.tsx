@@ -7,6 +7,8 @@ import { Mic, Pause, Play, Square, Volume2, Loader2 } from "lucide-react";
 import { useAudioRecorder } from "@/hooks/use-audio-recorder";
 import { useToast } from "@/components/ui/use-toast";
 
+
+
 export default function AudioProcessor() {
   const { toast } = useToast();
   const {
@@ -31,61 +33,64 @@ export default function AudioProcessor() {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   // Live transcription setup
-  useEffect(() => {
-    if (!stream) {
-      setLiveTranscript("");
-      recognitionRef.current?.stop();
-      return;
-    }
-  
-    const setupRecognition = () => {
-      if ("webkitSpeechRecognition" in window) {
-        const SpeechRecognition = (window as any).webkitSpeechRecognition;
-        if (!SpeechRecognition) return;
-  
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = "vi-VN";
-  
-        recognition.onresult = (event: SpeechRecognitionEvent) => {
-          let transcript = "";
-          for (let i = 0; i < event.results.length; i++) {
-            transcript += event.results[i][0].transcript;
-          }
-          setLiveTranscript(transcript);
+    // Live transcription setup
+    useEffect(() => {
+        if (!stream) {
+          setLiveTranscript("");
+          recognitionRef.current?.stop();
+          return;
+        }
+    
+        const setupRecognition = () => {
+            if (typeof window !== "undefined") {
+              const SpeechRecognition =
+                window.SpeechRecognition || window.webkitSpeechRecognition;
+          
+              if (!SpeechRecognition) return;
+          
+              const recognition = new SpeechRecognition() as SpeechRecognition;
+              recognition.continuous = true;
+              recognition.interimResults = true;
+              recognition.lang = "vi-VN";
+          
+              recognition.onresult = (event: SpeechRecognitionEvent) => {
+                let transcript = "";
+                for (let i = 0; i < event.results.length; i++) {
+                  transcript += event.results[i][0].transcript;
+                }
+                setLiveTranscript(transcript);
+              };
+          
+              recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+                console.error("Speech recognition error:", event.error);
+                if (event.error === "no-speech") {
+                  recognition.stop();
+                  setTimeout(() => {
+                    if (stream.active) {
+                      recognition.start();
+                    }
+                  }, 100);
+                }
+              };
+          
+              recognition.onend = () => {
+                if (stream.active) {
+                  recognition.start();
+                }
+              };
+          
+              recognitionRef.current = recognition;
+              recognition.start();
+            }
+          };
+          
+        setupRecognition();
+    
+        return () => {
+          recognitionRef.current?.stop();
         };
-  
-        recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-          console.error("Speech recognition error:", event.error);
-          if (event.error === "no-speech") {
-            recognition.stop();
-            setTimeout(() => {
-              if (stream.active) {
-                recognition?.start();
-              }
-            }, 100);
-          }
-        };
-  
-        recognition.onend = () => {
-          if (stream.active) {
-            recognition?.start();
-          }
-        };
-  
-        recognitionRef.current = recognition;
-        recognition.start();
-      }
-    };
-  
-    setupRecognition();
-  
-    return () => {
-      recognitionRef.current?.stop();
-    };
-  }, [stream]);
-
+      }, [stream]);
+    
   const handleProcess = async () => {
     if (!audioUrl) return;
 
