@@ -19,7 +19,7 @@ export default function TranslatorApp() {
   const [error, setError] = useState<string | null>(null)
 
   const handleImageCapture = async (imageData: string) => {
-    console.log("Captured Image Data:", imageData); // Log the image data
+    // console.log("Captured Image Data:", imageData); // Log the image data
     
     // Remove Data URL prefix if present
     const base64Image = imageData.split(",")[1];
