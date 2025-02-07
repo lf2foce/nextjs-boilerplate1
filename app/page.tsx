@@ -18,6 +18,7 @@ export default function TranslatorApp() {
   const [isPlaying, setIsPlaying] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  
   const handleImageCapture = async (imageData: string) => {
     // console.log("Captured Image Data:", imageData); // Log the image data
     

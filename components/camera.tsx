@@ -21,11 +21,12 @@ export function CameraComponent({ onCapture }: CameraProps) {
       setError(null);
       console.log("🔹 Requesting camera access...");
 
+
       const constraints = {
         video: {
-          facingMode: "environment",
           width: { ideal: 1280 },
           height: { ideal: 720 },
+          facingMode: { exact: "environment" }, // Try forcing environment mode
         },
       };
 
@@ -65,19 +66,34 @@ export function CameraComponent({ onCapture }: CameraProps) {
     }
   };
 
+  // const takePhoto = () => {
+  //   if (videoRef.current) {
+  //     const canvas = document.createElement("canvas");
+  //     canvas.width = videoRef.current.videoWidth;
+  //     canvas.height = videoRef.current.videoHeight;
+  //     const ctx = canvas.getContext("2d");
+  //     if (ctx) {
+  //       ctx.drawImage(videoRef.current, 0, 0);
+  //       const imageData = canvas.toDataURL("image/jpeg", 0.8);
+  //       console.log("📸 Captured Image Data:", imageData);
+  //       onCapture(imageData);
+  //       stopCamera();
+  //     }
+  //   }
+  // };
   const takePhoto = () => {
-    if (videoRef.current) {
-      const canvas = document.createElement("canvas");
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0);
-        const imageData = canvas.toDataURL("image/jpeg", 0.8);
-        console.log("📸 Captured Image Data:", imageData);
-        onCapture(imageData);
-        stopCamera();
-      }
+    if (!videoRef.current) return;
+    
+    const canvas = document.createElement("canvas");
+    canvas.width = videoRef.current.videoWidth || 640;
+    canvas.height = videoRef.current.videoHeight || 480;
+    const ctx = canvas.getContext("2d");
+  
+    if (ctx) {
+      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+      const imageData = canvas.toDataURL("image/jpeg", 0.8);
+      onCapture(imageData);
+      stopCamera();
     }
   };
 
@@ -103,13 +119,18 @@ export function CameraComponent({ onCapture }: CameraProps) {
 
   // ✅ Ensure the video element is mounted and starts playing
   useEffect(() => {
-    if (!isActive || !videoRef.current) {
-      console.log("❌ Video element is NULL or Camera is not active");
+    if (!isActive) {
+      console.log("❌ Camera is not active, skipping video setup.");
       return;
     }
-
+  
+    if (!videoRef.current) {
+      console.error("❌ Video element is NULL, React might not have rendered it yet.");
+      return;
+    }
+  
     console.log("🎥 Video component mounted, videoRef is available:", videoRef.current);
-
+  
     if (stream && videoRef.current) {
       videoRef.current.srcObject = stream;
       videoRef.current.play().catch((error) => console.error("❌ Video play error:", error));
