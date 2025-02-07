@@ -34,57 +34,55 @@ export default function AudioProcessor() {
   useEffect(() => {
     if (!stream) {
       setLiveTranscript("");
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
+      recognitionRef.current?.stop();
       return;
     }
-
+  
     const setupRecognition = () => {
       if ("webkitSpeechRecognition" in window) {
-        recognitionRef.current = new (window as any).webkitSpeechRecognition();
-        recognitionRef.current.continuous = true;
-        recognitionRef.current.interimResults = true;
-        recognitionRef.current.lang = "vi-VN";
-
-        recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+        const SpeechRecognition = (window as any).webkitSpeechRecognition;
+        if (!SpeechRecognition) return;
+  
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = "vi-VN";
+  
+        recognition.onresult = (event: SpeechRecognitionEvent) => {
           let transcript = "";
           for (let i = 0; i < event.results.length; i++) {
             transcript += event.results[i][0].transcript;
           }
           setLiveTranscript(transcript);
         };
-
-        recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
+  
+        recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
           console.error("Speech recognition error:", event.error);
           if (event.error === "no-speech") {
-            // Restart recognition on no-speech error
-            recognitionRef.current.stop();
+            recognition.stop();
             setTimeout(() => {
               if (stream.active) {
-                recognitionRef.current?.start();
+                recognition?.start();
               }
             }, 100);
           }
         };
-
-        recognitionRef.current.onend = () => {
-          // Restart recognition if still recording
+  
+        recognition.onend = () => {
           if (stream.active) {
-            recognitionRef.current?.start();
+            recognition?.start();
           }
         };
-
-        recognitionRef.current.start();
+  
+        recognitionRef.current = recognition;
+        recognition.start();
       }
     };
-
+  
     setupRecognition();
-
+  
     return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
+      recognitionRef.current?.stop();
     };
   }, [stream]);
 
