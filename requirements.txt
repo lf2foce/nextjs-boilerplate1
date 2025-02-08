@@ -7,3 +7,5 @@ python-multipart
 elevenlabs
 ffmpeg-python
 requests
+soundfile
+audioread

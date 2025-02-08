@@ -1,17 +1,17 @@
 import os
 import json
 import base64
+import soundfile as sf
+import audioread
+import uuid
+import numpy as np
 from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.responses import JSONResponse
-from fastapi.responses import StreamingResponse
-
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from elevenlabs import ElevenLabs
 from openai import OpenAI
-from fastapi.responses import FileResponse
-import uuid
-import ffmpeg
+
 # Load environment variables
 load_dotenv()
 
@@ -44,23 +44,28 @@ async def process_audio(audio: UploadFile = File(...)):
         # 🔹 Check file extension (Safari = mp4, Chrome = webm)
         file_extension = "mp4" if audio.content_type == "audio/mp4" else "webm"
         temp_audio_path = f"/tmp/audio.{file_extension}"
-
+        temp_wav_path = "/tmp/audio.wav"
         print(f"🔹 Received File Type: {audio.content_type}")
 
         # 🔹 Save uploaded audio file
         with open(temp_audio_path, "wb") as temp_audio:
             temp_audio.write(await audio.read())
 
-        # ✅ Convert `mp4` to `wav` for Whisper API
-        if file_extension == "mp4":
-            temp_wav_path = "/tmp/audio.wav"
-            ffmpeg.input(temp_audio_path).output(temp_wav_path, format="wav").run(overwrite_output=True)
-            audio_path_to_use = temp_wav_path  # Use the converted file
-        else:
-            audio_path_to_use = temp_audio_path  # Use the original file
+        # # ✅ Convert `mp4` to `wav` for Whisper API
+        # if file_extension == "mp4":
+        #     temp_wav_path = "/tmp/audio.wav"
+        #     ffmpeg.input(temp_audio_path).output(temp_wav_path, format="wav").run(overwrite_output=True)
+        #     audio_path_to_use = temp_wav_path  # Use the converted file
+        # else:
+        #     audio_path_to_use = temp_audio_path  # Use the original file
+        # Convert audio to WAV using soundfile
+        with audioread.audio_open(temp_audio_path) as src:
+            audio_data = np.concatenate([np.frombuffer(buf, dtype=np.int16) for buf in src])
+            sf.write(temp_wav_path, audio_data, src.samplerate, format="wav")
 
         # 🔹 2️⃣ Transcribe audio using OpenAI Whisper
-        with open(audio_path_to_use, "rb") as audio_file:
+        # with open(audio_path_to_use, "rb") as audio_file:
+        with open(temp_wav_path, "rb") as audio_file:
             transcription = openai_client.audio.transcriptions.create(
                 model="whisper-1",
                 file=audio_file,
