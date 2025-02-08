@@ -12,7 +12,6 @@ from openai import OpenAI
 from fastapi.responses import FileResponse
 import uuid
 import ffmpeg
-
 # Load environment variables
 load_dotenv()
 
