@@ -87,9 +87,9 @@ async def process_audio(audio: UploadFile = File(...)):
         # 🔹 4️⃣ Generate speech using ElevenLabs API
         tts_audio_generator = elevenlabs_client.text_to_speech.convert(
             voice_id="21m00Tcm4TlvDq8ikWAM",
-            output_format="mp3_44100_128",
+            output_format="mp3_44100_64", # "mp3_44100_128",
             text=translated_text,
-            model_id="eleven_monolingual_v1",
+            model_id="eleven_flash_v2_5",
         )
 
         tts_audio_bytes = b"".join(tts_audio_generator)
@@ -101,7 +101,7 @@ async def process_audio(audio: UploadFile = File(...)):
 
         return JSONResponse(
             content={
-                "audioUrl": f"http://127.0.0.1:8000/api/py/audio/{audio_filename.split('/')[-1]}",
+                "audioUrl": f"/api/py/audio/{audio_filename.split('/')[-1]}",
                 "originalText": original_text,
                 "translatedText": translated_text,
             }
@@ -111,7 +111,37 @@ async def process_audio(audio: UploadFile = File(...)):
         print(f"❌ Error: {e}")
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
     
+# @app.get("/api/py/audio/{filename}")
+# async def get_audio(filename: str):
+#     file_path = f"/tmp/{filename}"
+#     return FileResponse(file_path, media_type="audio/mpeg", filename="translated_speech.mp3")
+
+# @app.get("/api/py/audio/{filename}")
+# async def get_audio(filename: str):
+#     file_path = f"/tmp/{filename}"
+#     return FileResponse(
+#         file_path,
+#         media_type="audio/mpeg",
+#         headers={
+#             "Content-Disposition": 'inline; filename="translated_speech.mp3"',
+#             "Cache-Control": "no-cache",
+#         }
+#     )
+
 @app.get("/api/py/audio/{filename}")
 async def get_audio(filename: str):
     file_path = f"/tmp/{filename}"
-    return FileResponse(file_path, media_type="audio/mpeg", filename="translated_speech.mp3")
+
+    def iter_audio():
+        with open(file_path, "rb") as audio_file:
+            yield from audio_file
+
+    return StreamingResponse(
+        iter_audio(),
+        media_type="audio/mpeg",
+        headers={
+            "Content-Disposition": 'inline; filename="translated_speech.mp3"',
+            "Accept-Ranges": "bytes",  # ✅ Allows Safari to request partial audio files
+            "Cache-Control": "no-cache",
+        }
+    )

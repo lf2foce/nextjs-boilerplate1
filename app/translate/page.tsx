@@ -153,6 +153,10 @@ export default function AudioProcessor() {
 
         setGeneratedAudioUrl(data.audioUrl); // ✅ Set the audio source
 
+            // ✅ Force play after user clicks (fixes iOS issue)
+        const audioElement = new Audio(data.audioUrl);
+        audioElement.play().catch(error => console.warn("Auto-play blocked on iOS:", error));
+
       setTranscription({
         original: data.originalText,
         translated: data.translatedText,
