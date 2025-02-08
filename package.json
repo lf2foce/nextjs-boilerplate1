@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.1.9",
+    "@ffmpeg/core": "^0.12.10",
+    "@ffmpeg/ffmpeg": "^0.11.6",
     "@radix-ui/react-progress": "^1.1.1",
     "@radix-ui/react-slot": "^1.1.1",
     "@radix-ui/react-toast": "^1.2.5",
