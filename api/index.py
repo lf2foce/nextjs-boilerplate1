@@ -11,6 +11,8 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from elevenlabs import ElevenLabs
 from openai import OpenAI
+import tempfile
+
 
 # Load environment variables
 load_dotenv()
@@ -40,12 +42,17 @@ class AudioResponse(BaseModel):
 async def process_audio(audio: UploadFile = File(...)):
     """Processes uploaded audio: Transcribes, Translates, and Generates Speech."""
     try:
+        temp_dir = tempfile.gettempdir()  # Get a valid temporary directory
+        temp_audio_path = os.path.join(temp_dir, f"audio.webm")
+        temp_wav_path = os.path.join(temp_dir, "audio.wav")
+
+        print(f"🔹 Temp Directory: {temp_dir}")  # Debugging line
         # 🔹 Detect file format dynamically (Safari = mp4, Chrome = webm)
         # 🔹 Check file extension (Safari = mp4, Chrome = webm)
-        file_extension = "mp4" if audio.content_type == "audio/mp4" else "webm"
-        temp_audio_path = f"/tmp/audio.{file_extension}"
-        temp_wav_path = "/tmp/audio.wav"
-        print(f"🔹 Received File Type: {audio.content_type}")
+        # file_extension = "mp4" if audio.content_type == "audio/mp4" else "webm"
+        # temp_audio_path = f"/tmp/audio.{file_extension}"
+        # temp_wav_path = "/tmp/audio.wav"
+        # print(f"🔹 Received File Type: {audio.content_type}")
 
         # 🔹 Save uploaded audio file
         with open(temp_audio_path, "wb") as temp_audio:
