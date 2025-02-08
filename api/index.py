@@ -1,7 +1,6 @@
 import os
 import json
 import base64
-import requests
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.responses import StreamingResponse
