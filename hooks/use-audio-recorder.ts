@@ -24,14 +24,14 @@ export function useAudioRecorder() {
   const mediaRecorder = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
 
-  const convertToMp4 = async (blob: Blob) => {
-    if (blob.type === "audio/m4a") {
-      console.log("🔄 Converting M4A to MP4...");
+  // const convertToMp4 = async (blob: Blob) => {
+  //   if (blob.type === "audio/m4a") {
+  //     console.log("🔄 Converting M4A to MP4...");
   
-      return new Blob([blob], { type: "audio/mp4" });
-    }
-    return blob; // If already supported, return as is
-  };
+  //     return new Blob([blob], { type: "audio/mp4" });
+  //   }
+  //   return blob; // If already supported, return as is
+  // };
 
   // ✅ useEffect: Check for available microphones on mount
   useEffect(() => {
@@ -69,9 +69,9 @@ export function useAudioRecorder() {
   
       console.log("✅ Microphone access granted:", stream);
   
-      // ✅ Detect Safari and use `audio/mp4`
+      // 🔹 Detect Safari and use `audio/mp4`, otherwise use `audio/webm`
       const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-      const mimeType = isSafari ? "audio/mp4" : "audio/webm";
+      const mimeType = isSafari ? "audio/mp4" : "audio/webm"; // Set MIME type dynamically
   
       if (!MediaRecorder.isTypeSupported(mimeType)) {
         console.warn(`❌ MIME type ${mimeType} is not supported, trying fallback.`);
@@ -88,28 +88,19 @@ export function useAudioRecorder() {
   
       mediaRecorder.current.onstop = async () => {
         let audioBlob = new Blob(chunksRef.current, { type: mimeType });
-      
+  
         console.log("🤔 File MIME Type:", audioBlob.type);
         console.log("📏 File Size:", audioBlob.size, "bytes");
-      
+  
         if (audioBlob.size < 1000) {
           console.error("❌ File is too small. Recording might have failed.");
           return;
         }
-      
-        // Convert for Safari if needed
-        if (audioBlob.type === "audio/m4a") {
-          audioBlob = await convertToMp4(audioBlob);
-          console.log("✅ Converted to mp4:", audioBlob.type);
-        }
-      
-        // ✅ Ensure file is correctly converted
-        console.log("✅ Final File Type:", audioBlob.type);
-      
-        const file = new File([audioBlob], "recording.mp4", { type: "audio/mp4" });
-      
+  
+        const file = new File([audioBlob], `recording.${isSafari ? "mp4" : "webm"}`, { type: mimeType });
+  
         setState((prev) => ({ ...prev, audioUrl: URL.createObjectURL(file), isRecording: false, stream: null }));
-      
+  
         stream.getTracks().forEach((track) => track.stop());
       };
   
@@ -127,6 +118,7 @@ export function useAudioRecorder() {
       setState((prev) => ({ ...prev, error: "Failed to access microphone. Please check your settings." }));
     }
   }, []);
+  
   
   
   

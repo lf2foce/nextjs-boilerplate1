@@ -105,15 +105,28 @@ export default function AudioProcessor() {
       const response = await fetch(audioUrl);
       const blob = await response.blob();
 
-      const formData = new FormData();
-      formData.append("audio", blob, "audio.webm");
+    //   const formData = new FormData();
+    //   formData.append("audio", blob, "audio.webm");
+
+    // 🔹 Detect the MIME type of the recorded audio
+        const mimeType = blob.type || "audio/webm"; // Default to "audio/webm" if unknown
+        const fileExtension = mimeType === "audio/mp4" ? "mp4" : "webm"; // Adjust file extension
+
+        const formData = new FormData();
+        formData.append("audio", blob, `audio.${fileExtension}`); // Dynamically set extension
+
 
       toast({
         title: "Processing audio",
         description: "Converting speech to text and translating...",
       });
 
-      const result = await fetch("/api/process-audio", {
+    //   const result = await fetch("/api/process-audio", {
+    //     method: "POST",
+    //     body: formData,
+    //   });
+
+    const result = await fetch("/api/py/process-audio", {
         method: "POST",
         body: formData,
       });
@@ -128,12 +141,18 @@ export default function AudioProcessor() {
       if (data.error) {
         throw new Error(data.error);
       }
+      
 
-      const audioArray = new Uint8Array(data.audio);
-      const audioBlob = new Blob([audioArray], { type: "audio/mpeg" });
-      const url = URL.createObjectURL(audioBlob);
+    //   const audioArray = new Uint8Array(data.audio);
+    //   const audioBlob = new Blob([audioArray], { type: "audio/mpeg" });
+    //   const url = URL.createObjectURL(audioBlob);
+ 
 
-      setGeneratedAudioUrl(url);
+    // const audioBlob = await result.blob(); // ✅ Get raw audio blob
+    // const url = URL.createObjectURL(audioBlob);
+
+        setGeneratedAudioUrl(data.audioUrl); // ✅ Set the audio source
+
       setTranscription({
         original: data.originalText,
         translated: data.translatedText,
