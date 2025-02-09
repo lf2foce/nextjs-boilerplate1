@@ -20,13 +20,14 @@ export function CameraComponent({ onCapture }: CameraProps) {
     try {
       setError(null);
       console.log("🔹 Requesting camera access...");
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
 
       const constraints = {
         video: {
           width: { ideal: 1280 },
           height: { ideal: 720 },
-          facingMode: { exact: "environment" }, // Try forcing environment mode
+          facingMode: isMobile ? "environment" : "user", // Try forcing environment mode
         },
       };
 
