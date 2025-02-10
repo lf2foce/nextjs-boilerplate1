@@ -84,26 +84,26 @@ export function CameraComponent({ onCapture }: CameraProps) {
   //   }
   // };
   const takePhoto = () => {
-  if (!videoRef.current) return;
-
-  const video = videoRef.current;
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-
-  if (!ctx) return;
-
-  // ✅ Capture image directly from video
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-  // ✅ Convert canvas to base64 image
-  const imageData = canvas.toDataURL("image/jpeg", 0.8);
-  console.log("📸 Captured Image:", imageData);
-
-  onCapture(imageData);
-  stopCamera();
-};
+    if (!videoRef.current) return;
+  
+    const video = videoRef.current;
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+  
+    if (!ctx) return;
+  
+    // ✅ Capture image directly from video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  
+    // ✅ Convert canvas to base64 image
+    const imageData = canvas.toDataURL("image/jpeg", 0.8);
+    console.log("📸 Captured Image:", imageData);
+  
+    onCapture(imageData);
+    stopCamera();
+  };
   
   
   

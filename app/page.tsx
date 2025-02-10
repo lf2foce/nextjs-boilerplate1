@@ -1,6 +1,6 @@
 "use client"
 
-import { useState  } from "react"
+import { useState } from "react"
 import { CameraComponent } from "@/components/camera"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -18,7 +18,44 @@ export default function TranslatorApp() {
   const [isPlaying, setIsPlaying] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
- 
+  // const [isPortrait, setIsPortrait] = useState(true);
+
+  // useEffect(() => {
+  //   if (typeof window !== "undefined") { // ✅ Ensure it's running on client-side
+  //     const handleResize = () => {
+  //       setIsPortrait(window.matchMedia("(orientation: portrait)").matches);
+  //     };
+
+  //     handleResize(); // Initial check
+  //     window.addEventListener("resize", handleResize);
+
+  //     return () => window.removeEventListener("resize", handleResize);
+  //   }
+  // }, []);
+
+  // const isPortrait = window.matchMedia("(orientation: portrait)").matches;
+
+  // const [isPortrait, setIsPortrait] = useState<boolean | null>(null);
+
+  // useEffect(() => {
+  //   if (typeof window !== "undefined") {
+  //     const handleResize = () => {
+  //       setIsPortrait(window.innerHeight > window.innerWidth);
+  //     };
+
+  //     // ✅ Initial check
+  //     handleResize();
+
+  //     // ✅ Listen for screen resize events
+  //     window.addEventListener("resize", handleResize);
+
+  //     return () => window.removeEventListener("resize", handleResize);
+  //   }
+  // }, []);
+
+  // ✅ Prevent rendering errors on SSR
+  // if (isPortrait === null) return null;
+
 
 
   const handleImageCapture = async (imageData: string) => {
@@ -124,13 +161,28 @@ export default function TranslatorApp() {
                     /> */}
 
 
-<Image
+{/* <Image
   src={image || "/placeholder.svg"}
   alt="Captured"
   width={500} // Adjust width as needed
   height={800} // Adjust height as needed
   className="w-full rounded-lg border border-gray-200"
+/> */}
+<Image
+  src={image || "/placeholder.svg"}
+  alt="Captured"
+  width={0} // ✅ Let it scale dynamically
+  height={0}
+  sizes="100vw"
+  className="w-full h-auto max-w-full rounded-lg border border-gray-200 object-contain"
 />
+         {/* <Image
+          src={image}
+          alt="Captured"
+          width={isPortrait ? 500 : 800} // ✅ Use dynamic width
+          height={isPortrait ? 700 : 500} // ✅ Use dynamic height
+          className={`w-full rounded-lg border border-gray-200 object-contain ${isPortrait ? "" : "rotate-90"}`} // ✅ Rotate preview if landscape
+        /> */}
                     
 
                     {error ? (
