@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect  } from "react"
+import { useState  } from "react"
 import { CameraComponent } from "@/components/camera"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -56,16 +56,30 @@ export default function TranslatorApp() {
   const handleSpeak = async () => {
     if (!translation || isPlaying) return
 
-    try {
-      setIsPlaying(true)
-      const audioData = await generateSpeech(translation)
-      const audio = new Audio(`data:audio/mpeg;base64,${audioData}`)
-      audio.onended = () => setIsPlaying(false)
-      await audio.play()
+    if (!translation || isPlaying) return;
+
+  try {
+    setIsPlaying(true);
+
+    // ✅ Ensure the API call returns a valid Base64 string
+    const audioData = await generateSpeech(translation);
+    if (!audioData) throw new Error("Invalid audio data");
+
+    // ✅ Create an audio element and play it
+    const audio = new Audio(`data:audio/mpeg;base64,${audioData}`);
+
+    // ✅ Handle playback errors (e.g., autoplay restrictions)
+    audio.play().catch(err => {
+      console.error("Audio playback failed:", err);
+      setError("Audio playback blocked. Please tap to play.");
+      setIsPlaying(false);
+    });
+
+    audio.onended = () => setIsPlaying(false);
     } catch (err) {
-      console.error("Error:", err); 
-      setError("Failed to generate speech. Please try again.")
-      setIsPlaying(false)
+      console.error("Error generating speech:", err);
+      setError("Failed to generate speech. Please try again.");
+      setIsPlaying(false);
     }
   }
 
