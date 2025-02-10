@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Camera, Upload, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { motion } from "framer-motion"; 
 
 interface CameraProps {
   onCapture: (imageData: string) => void;
@@ -84,20 +85,28 @@ export function CameraComponent({ onCapture }: CameraProps) {
   // };
   const takePhoto = () => {
     if (!videoRef.current) return;
-    
+  
+    const video = videoRef.current;
     const canvas = document.createElement("canvas");
-    canvas.width = videoRef.current.videoWidth || 640;
-    canvas.height = videoRef.current.videoHeight || 480;
     const ctx = canvas.getContext("2d");
   
-    if (ctx) {
-      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-      const imageData = canvas.toDataURL("image/jpeg", 0.8);
-      onCapture(imageData);
-      stopCamera();
-    }
+    if (!ctx) return;
+  
+    // ✅ Capture image directly from video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  
+    // ✅ Convert canvas to base64 image
+    const imageData = canvas.toDataURL("image/jpeg", 0.8);
+    console.log("📸 Captured Image:", imageData);
+  
+    onCapture(imageData);
+    stopCamera();
   };
-
+  
+  
+  
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -145,15 +154,25 @@ export function CameraComponent({ onCapture }: CameraProps) {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      <div className="relative aspect-[4/3] rounded-xl overflow-hidden border-2 border-gray-200 bg-gray-50">
-        {isActive ? (
-          <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-        ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <Camera className="w-16 h-16 text-gray-400 mb-8" />
-          </div>
-        )}
-      </div>
+      {/* ✅ Dynamically change the aspect ratio when camera is active */}
+      <motion.div
+  className="relative w-full rounded-xl overflow-hidden border-2 border-gray-200 bg-gray-50"
+  animate={{
+    height: isActive ? (window.innerHeight > window.innerWidth ? "80vh" : "50vh") : "200px", 
+    width: "100%",
+  }} 
+  transition={{ duration: 0.5, ease: "easeInOut" }}
+>
+  {isActive ? (
+    <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+  ) : (
+    <div className="absolute inset-0 flex flex-col items-center justify-center">
+      <Camera className="w-16 h-16 text-gray-400 mb-8" />
+    </div>
+  )}
+</motion.div>
+
+
       <div className="flex justify-center gap-4 mt-6">
         {!isActive ? (
           <>

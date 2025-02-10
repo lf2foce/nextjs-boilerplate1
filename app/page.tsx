@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect  } from "react"
 import { CameraComponent } from "@/components/camera"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -18,7 +18,9 @@ export default function TranslatorApp() {
   const [isPlaying, setIsPlaying] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  
+ 
+
+
   const handleImageCapture = async (imageData: string) => {
     // console.log("Captured Image Data:", imageData); // Log the image data
     
@@ -112,10 +114,9 @@ export default function TranslatorApp() {
   src={image || "/placeholder.svg"}
   alt="Captured"
   width={500} // Adjust width as needed
-  height={300} // Adjust height as needed
+  height={800} // Adjust height as needed
   className="w-full rounded-lg border border-gray-200"
 />
-
                     
 
                     {error ? (

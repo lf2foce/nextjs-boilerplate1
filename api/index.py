@@ -131,7 +131,7 @@ async def process_audio(audio: UploadFile = File(...)):
 
         # 🔹 4️⃣ Generate speech using ElevenLabs API
         tts_audio_generator = elevenlabs_client.text_to_speech.convert(
-            voice_id="21m00Tcm4TlvDq8ikWAM",
+            voice_id="YjkAyVltWqOOytF4YEM3",
             output_format="mp3_44100_64", # "mp3_44100_128",
             text=translated_text,
             model_id="eleven_flash_v2_5",

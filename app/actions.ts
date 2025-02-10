@@ -79,7 +79,7 @@ export async function extractAndTranslateText(imageBase64: string) {
 
 export async function generateSpeech(text: string) {
   try {
-    const voiceId = "GATds6kYPBX2tRfQExbR"; //"JBFqnCBsd6RMkjVDRZzb"; // Replace with the best Vietnamese voice ID
+    const voiceId = "YjkAyVltWqOOytF4YEM3";//TA "GATds6kYPBX2tRfQExbR"; //"JBFqnCBsd6RMkjVDRZzb"; // Replace with the best Vietnamese voice ID
 
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
