@@ -158,7 +158,7 @@ export function CameraComponent({ onCapture }: CameraProps) {
       <motion.div
   className="relative w-full rounded-xl overflow-hidden border-2 border-gray-200 bg-gray-50"
   animate={{
-    height: isActive ? (window.innerHeight > window.innerWidth ? "80vh" : "50vh") : "200px", 
+    height: isActive ? (window.innerHeight > window.innerWidth ? "75vh" : "50vh") : "200px", 
     width: "100%",
   }} 
   transition={{ duration: 0.5, ease: "easeInOut" }}

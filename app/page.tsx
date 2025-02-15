@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { CameraComponent } from "@/components/camera"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -35,21 +35,26 @@ export default function TranslatorApp() {
 
   // const isPortrait = window.matchMedia("(orientation: portrait)").matches;
 
-  const [isPortrait, setIsPortrait] = useState<boolean | null>(null);
+  // const [isPortrait, setIsPortrait] = useState<boolean | null>(null);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const handleResize = () => {
-        setIsPortrait(window.innerHeight > window.innerWidth)
-      }
-      handleResize()
-      window.addEventListener("resize", handleResize)
-      return () => window.removeEventListener("resize", handleResize)
-    }
-  }, [])
+  // useEffect(() => {
+  //   if (typeof window !== "undefined") {
+  //     const handleResize = () => {
+  //       setIsPortrait(window.innerHeight > window.innerWidth);
+  //     };
 
-  if (isPortrait === null) return null
+  //     // ✅ Initial check
+  //     handleResize();
 
+  //     // ✅ Listen for screen resize events
+  //     window.addEventListener("resize", handleResize);
+
+  //     return () => window.removeEventListener("resize", handleResize);
+  //   }
+  // }, []);
+
+  // ✅ Prevent rendering errors on SSR
+  // if (isPortrait === null) return null;
 
 
 
