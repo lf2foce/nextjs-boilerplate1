@@ -40,21 +40,16 @@ export default function TranslatorApp() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const handleResize = () => {
-        setIsPortrait(window.innerHeight > window.innerWidth);
-      };
-
-      // ✅ Initial check
-      handleResize();
-
-      // ✅ Listen for screen resize events
-      window.addEventListener("resize", handleResize);
-
-      return () => window.removeEventListener("resize", handleResize);
+        setIsPortrait(window.innerHeight > window.innerWidth)
+      }
+      handleResize()
+      window.addEventListener("resize", handleResize)
+      return () => window.removeEventListener("resize", handleResize)
     }
-  }, []);
+  }, [])
 
-  // ✅ Prevent rendering errors on SSR
-  if (isPortrait === null) return null;
+  if (isPortrait === null) return null
+
 
 
 
