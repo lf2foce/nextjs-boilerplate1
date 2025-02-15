@@ -28,7 +28,8 @@ export function CameraComponent({ onCapture }: CameraProps) {
         video: {
           width: { ideal: 1280 },
           height: { ideal: 720 },
-          facingMode: isMobile ? "environment" : "user", // Try forcing environment mode
+          // facingMode: isMobile ? "environment" : "user", // Try forcing environment mode
+          facingMode: isMobile ? { exact: "environment" } : { ideal: "environment" },
         },
       };
 
